@@ -1,0 +1,17 @@
+{
+  "name": "Anwesenheit Schwimmen",
+  "short_name": "Anwesenheit",
+  "description": "Anwesenheitsliste für das Schwimmtraining – alle Daten bleiben auf dem Handy.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e3000f",
+  "theme_color": "#e3000f",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

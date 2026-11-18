@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; manifest-src 'self'; worker-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#e3000f">
+  <title>Anwesenheit Schwimmen</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Anwesenheit">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="appbar">
+    <h1 id="view-title">Anwesenheit</h1>
+  </header>
+
+  <!-- ============ Anwesenheit ============ -->
+  <main id="view-attendance" class="view">
+    <div class="sessionbar">
+      <button type="button" id="prev" class="nav-btn" aria-label="Vorherige Einheit">‹</button>
+      <button type="button" id="session-label" class="session-label" aria-label="Einheit bearbeiten">
+        <span id="session-date" class="session-date"></span>
+        <span id="session-sub" class="session-sub"></span>
+      </button>
+      <button type="button" id="next" class="nav-btn" aria-label="Nächste Einheit">›</button>
+    </div>
+
+    <div class="toolbar">
+      <div class="counter" id="counter" aria-live="polite"></div>
+      <label class="switch">
+        <input type="checkbox" id="details-toggle" role="switch">
+        <span class="switch-track" aria-hidden="true"></span>
+        <span>Details</span>
+      </label>
+    </div>
+    <div class="filterbar">
+      <div id="group-filter" class="segmented" role="radiogroup" aria-label="Trainingsgruppe"></div>
+    </div>
+
+    <div id="backup-banner" class="banner banner-row" hidden>
+      <span>Neue Einträge seit der letzten Sicherung.</span>
+      <button type="button" id="backup-now" class="toast-btn">Jetzt sichern</button>
+    </div>
+    <p id="cancel-banner" class="banner" hidden>Training fällt aus – Eintragen ist gesperrt. Antippen der Einheit oben zum Ändern.</p>
+    <p id="empty-hint" class="hint" hidden>Noch keine Mitglieder. Unter <b>Mitglieder</b> anlegen oder importieren.</p>
+
+    <ul id="list" class="list"></ul>
+
+    <div class="actionbar">
+      <button type="button" id="undo" class="btn btn-secondary" disabled>↶ Rückgängig</button>
+      <button type="button" id="add-guest" class="btn btn-primary">+ Neuer Gast</button>
+    </div>
+  </main>
+
+  <!-- ============ Mitglieder ============ -->
+  <main id="view-members" class="view" hidden>
+    <div class="filterbar searchbar">
+      <label for="mem-search" class="sr-only">Suchen</label>
+      <input type="search" id="mem-search" placeholder="Suchen: Name, Nummer, Gruppe" autocomplete="off">
+      <label class="check"><input type="checkbox" id="mem-show-inactive"><span>Inaktive anzeigen</span></label>
+    </div>
+    <p id="mem-count" class="hint"></p>
+    <ul id="mem-list" class="list"></ul>
+    <div class="actionbar">
+      <button type="button" id="mem-add" class="btn btn-primary">+ Mitglied</button>
+    </div>
+
+    <section class="card">
+      <h2>Mitgliederliste importieren (CSV)</h2>
+      <p class="hint">Spalten: <b>Mitgliedsnummer;Nachname;Vorname;Gruppe</b>, Trennzeichen Semikolon, UTF-8.
+        Gleiche Nummer wird aktualisiert, neue Nummern werden angelegt, wer fehlt, wird deaktiviert (nicht gelöscht).
+        Vorher siehst du eine Vorschau.</p>
+      <label class="btn btn-secondary btn-block file-btn">CSV-Datei wählen
+        <input type="file" id="mem-csv" accept=".csv,text/csv,text/plain" class="sr-only"></label>
+    </section>
+    <section class="card">
+      <h2>Daten der bisherigen App übernehmen</h2>
+      <p class="hint"><b>startdaten.json</b> oder eine Sicherung der alten App. <b>Ersetzt alle Daten</b> in dieser App
+        (Vorschau und Bestätigung vorher).</p>
+      <label class="btn btn-secondary btn-block file-btn">JSON-Datei wählen
+        <input type="file" id="mem-legacy" accept=".json,application/json" class="sr-only"></label>
+    </section>
+  </main>
+
+  <!-- ============ Daten / Export ============ -->
+  <main id="view-data" class="view" hidden>
+    <section class="card">
+      <h2>Anwesenheit exportieren (CSV)</h2>
+      <label class="field">
+        <span>Zeitraum</span>
+        <select id="exp-type">
+          <option value="month">Ein Monat</option>
+          <option value="year">Ein Jahr</option>
+          <option value="range">Von – bis</option>
+          <option value="all">Alle Einheiten</option>
+        </select>
+      </label>
+      <label class="field" id="exp-month-field">
+        <span>Monat</span>
+        <input type="month" id="exp-month">
+      </label>
+      <label class="field" id="exp-year-field" hidden>
+        <span>Jahr</span>
+        <input type="number" id="exp-year" inputmode="numeric" min="2000" max="2100">
+      </label>
+      <div id="exp-range-field" class="field-row" hidden>
+        <label class="field"><span>Von</span><input type="date" id="exp-from"></label>
+        <label class="field"><span>Bis</span><input type="date" id="exp-to"></label>
+      </div>
+      <p id="exp-info" class="hint"></p>
+      <button type="button" id="exp-go" class="btn btn-primary btn-block">Exportieren / Teilen</button>
+    </section>
+
+    <section class="card">
+      <h2>Sicherung (Backup)</h2>
+      <p id="backup-last" class="hint"></p>
+      <p class="hint">Alle Daten liegen nur auf diesem Handy. Bitte <b>nach jedem Training sichern</b> und die Datei z. B. per
+        Mail an dich schicken oder in der Cloud ablegen. Geht das Handy verloren oder wird die App gelöscht, sind die Daten
+        sonst weg.</p>
+      <button type="button" id="backup-go" class="btn btn-primary btn-block">Sicherung erstellen / teilen</button>
+      <label class="btn btn-danger btn-block file-btn">Sicherung wiederherstellen …
+        <input type="file" id="restore-file" accept=".json,application/json" class="sr-only"></label>
+      <p class="hint small">Beim Wiederherstellen werden alle Daten auf diesem Gerät ersetzt (mit Vorschau und Bestätigung).</p>
+    </section>
+
+    <section class="card">
+      <h2>Einstellungen</h2>
+      <label class="field">
+        <span>Darstellung</span>
+        <select id="set-theme">
+          <option value="auto">Automatisch (wie Handy)</option>
+          <option value="light">Hell</option>
+          <option value="dark">Dunkel</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Standard-Uhrzeit für neue Montage</span>
+        <input type="time" id="set-time">
+      </label>
+      <label class="field">
+        <span>Trainingsgruppen (eine pro Zeile, Reihenfolge der Knöpfe)</span>
+        <textarea id="set-groups" rows="4" maxlength="400"></textarea>
+        <small>Auf den Knöpfen steht der Text in Klammern, z. B. „I. Gruppe (Bronze/Silber)“ → „Bronze/Silber“.</small>
+      </label>
+      <button type="button" id="set-save" class="btn btn-secondary btn-block">Einstellungen speichern</button>
+    </section>
+
+    <section class="card">
+      <h2>Datenschutz</h2>
+      <p class="hint">Die App speichert alles ausschließlich auf diesem Gerät. Es gibt keine Anmeldung, keinen Server und
+        keine Übertragung. Daten verlassen das Handy nur, wenn du selbst einen Export oder eine Sicherung teilst.
+        Schütze das Handy mit einer Bildschirmsperre.</p>
+      <p class="hint small" id="app-version"></p>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="Bereiche">
+    <button type="button" class="tab" data-view="attendance" aria-current="page">✓<span>Anwesenheit</span></button>
+    <button type="button" class="tab" data-view="members">👥<span>Mitglieder</span></button>
+    <button type="button" class="tab" data-view="data">⇪<span>Daten</span></button>
+  </nav>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden>
+    <span id="toast-text"></span>
+    <button type="button" id="toast-undo" class="toast-btn" hidden>Rückgängig</button>
+  </div>
+
+  <!-- ============ Dialog: Person bearbeiten ============ -->
+  <dialog id="dlg-edit" aria-labelledby="dlg-edit-title">
+    <form method="dialog" id="form-edit">
+      <h2 id="dlg-edit-title"></h2>
+      <p id="dlg-edit-sub" class="hint"></p>
+      <label class="field">
+        <span>Bemerkung zu dieser Einheit</span>
+        <input type="text" id="edit-note" maxlength="200" autocomplete="off">
+        <small>Bitte keine Gesundheitsdetails eintragen (Datenschutz).</small>
+      </label>
+      <label class="field">
+        <span>Gruppe</span>
+        <input type="text" id="edit-group" list="group-list" maxlength="60" autocomplete="off">
+      </label>
+      <div class="dlg-actions">
+        <button type="submit" value="save" class="btn btn-primary">Speichern</button>
+        <button type="submit" value="cancel" class="btn btn-secondary" formnovalidate>Abbrechen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ Dialog: Neuer Gast ============ -->
+  <dialog id="dlg-guest" aria-labelledby="dlg-guest-title">
+    <form method="dialog" id="form-guest">
+      <h2 id="dlg-guest-title">Neuer Gast</h2>
+      <label class="field">
+        <span>Name (Vorname Nachname, Nachname optional)</span>
+        <input type="text" id="guest-name" maxlength="80" autocomplete="off" autocapitalize="words">
+      </label>
+      <p id="guest-error" class="error" hidden></p>
+      <div class="dlg-actions">
+        <button type="submit" value="save" class="btn btn-primary">Eintragen</button>
+        <button type="submit" value="cancel" class="btn btn-secondary" formnovalidate>Abbrechen</button>
+      </div>
+      <div id="known-guests-wrap" hidden>
+        <h3>Bekannte Gäste – antippen zum Eintragen</h3>
+        <div id="known-guests" class="chips"></div>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ Dialog: Einheit ============ -->
+  <dialog id="dlg-session" aria-labelledby="dlg-session-title">
+    <form method="dialog" id="form-session">
+      <h2 id="dlg-session-title">Einheit</h2>
+      <label class="field">
+        <span>Uhrzeit dieser Einheit</span>
+        <input type="time" id="session-time" required>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="session-cancelled">
+        <span>Training fällt aus (nicht im Export)</span>
+      </label>
+      <div class="dlg-actions">
+        <button type="submit" value="save" class="btn btn-primary">Speichern</button>
+        <button type="submit" value="cancel" class="btn btn-secondary" formnovalidate>Abbrechen</button>
+      </div>
+      <hr>
+      <h3>Sondertermin anlegen</h3>
+      <div class="field-row">
+        <label class="field"><span>Datum</span><input type="date" id="special-date"></label>
+        <label class="field"><span>Uhrzeit</span><input type="time" id="special-time"></label>
+      </div>
+      <button type="submit" value="special" class="btn btn-secondary btn-block">Sondertermin anlegen</button>
+      <button type="submit" value="delete" id="session-delete" class="btn btn-danger btn-block" hidden>Diesen Sondertermin löschen</button>
+    </form>
+  </dialog>
+
+  <!-- ============ Dialog: Mitglied ============ -->
+  <dialog id="dlg-member" aria-labelledby="dlg-member-title">
+    <form method="dialog" id="form-member">
+      <h2 id="dlg-member-title">Mitglied</h2>
+      <p id="member-guest-info" class="hint" hidden></p>
+      <label class="field" id="member-nr-field">
+        <span>Mitgliedsnummer</span>
+        <input type="text" id="member-nr" maxlength="30" autocomplete="off" inputmode="text">
+      </label>
+      <div class="field-row">
+        <label class="field"><span>Vorname</span><input type="text" id="member-first" maxlength="60" autocomplete="off" autocapitalize="words"></label>
+        <label class="field"><span>Nachname</span><input type="text" id="member-last" maxlength="60" autocomplete="off" autocapitalize="words"></label>
+      </div>
+      <label class="field">
+        <span>Gruppe</span>
+        <input type="text" id="member-group" list="group-list" maxlength="60" autocomplete="off">
+      </label>
+      <label class="field">
+        <span>Notiz (optional)</span>
+        <input type="text" id="member-note" maxlength="200" autocomplete="off">
+        <small>Keine Gesundheitsdetails eintragen.</small>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="member-active">
+        <span>Aktiv (inaktive Mitglieder erscheinen nicht mehr in der Anwesenheitsliste)</span>
+      </label>
+      <p id="member-error" class="error" hidden></p>
+      <div class="dlg-actions">
+        <button type="submit" value="save" class="btn btn-primary">Speichern</button>
+        <button type="submit" value="cancel" class="btn btn-secondary" formnovalidate>Abbrechen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ Dialog: Import-Vorschau ============ -->
+  <dialog id="dlg-import" aria-labelledby="dlg-import-title">
+    <form method="dialog" id="form-import">
+      <h2 id="dlg-import-title">Vorschau</h2>
+      <div id="import-body"></div>
+      <div class="dlg-actions">
+        <button type="submit" value="save" id="import-ok" class="btn btn-primary">Übernehmen</button>
+        <button type="submit" value="cancel" class="btn btn-secondary" formnovalidate>Abbrechen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <datalist id="group-list"></datalist>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
