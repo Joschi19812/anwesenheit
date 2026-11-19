@@ -1,6 +1,6 @@
 {
-  "name": "Anwesenheit Schwimmen",
-  "short_name": "Anwesenheit",
+  "name": "Teilnehmer Training",
+  "short_name": "Teilnehmer Training",
   "description": "Anwesenheitsliste für das Schwimmtraining – alle Daten bleiben auf dem Handy.",
   "lang": "de",
   "start_url": "./",

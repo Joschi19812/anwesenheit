@@ -89,7 +89,8 @@ const DEFAULT_GROUPS = ['I. Gruppe (Bronze/Silber)', 'II. Gruppe (ab JSA Gold)',
 /** Kurzname fuer Knoepfe: Text in Klammern, sonst der ganze Name ("I. Gruppe (Bronze/Silber)" -> "Bronze/Silber"). */
 function groupLabel(g) {
   const hit = /\(([^)]+)\)\s*$/.exec(g);
-  return hit ? hit[1] : g;
+  // Umbruch nach "/" erlauben, damit z. B. "Bronze/Silber" zweizeilig in den Knopf passt
+  return (hit ? hit[1] : g).replace(/\//g, '/' + String.fromCharCode(0x200b));
 }
 
 /** Trainingsgruppen: feste Reihenfolge aus den Einstellungen, danach weitere Gruppen aus den Mitgliedsdaten. */
@@ -733,7 +734,7 @@ async function saveSettings() {
 
 /* ================= Navigation ================= */
 
-const TITLES = { attendance: 'Anwesenheit', members: 'Mitglieder', data: 'Daten & Export' };
+const TITLES = { attendance: 'Teilnehmer Training', members: 'Mitglieder', data: 'Daten & Export' };
 function showView(name) {
   for (const v of Object.keys(TITLES)) $('view-' + v).hidden = v !== name;
   for (const t of document.querySelectorAll('.tab')) {
